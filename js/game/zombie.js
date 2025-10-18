@@ -1,0 +1,263 @@
+class ZombieManager {
+    constructor(zombies, positions, scene, world, player){
+        positions.forEach((position) => {
+            zombies.push(new Zombie(scene, world, player, position[0], position[1]));
+        });
+    }
+}
+
+class Zombie {
+    constructor(scene, world, player, x, z) {
+      this.scene = scene;
+      this.world = world;
+      this.player = player;
+  
+      this.zombie = null;
+      this.mixer = null;
+      this.body = null;
+  
+      this.idleAction = null;
+      this.walkAction = null;
+      this.attackAction = null;
+      this.activeAction = null;
+      this.currentAction = null;
+  
+      this.attackTrigger = null;
+      this.attackTimer = 0;
+      this.isAttacking = false;
+      this.attackTriggerActive = false;
+  
+      this.x = x;
+      this.z = z;
+  
+      this.loadZombieModel();
+    }
+  
+    // ----------------------------------------------------------
+    // CARGA DEL MODELO Y ANIMACIONES
+    // ----------------------------------------------------------
+    
+    loadZombieModel() {
+        const loader = new THREE.FBXLoader();
+        loader.load('models/zombi/Zombie Idle.fbx', (idleAnim) => {
+            loader.load('models/zombi/Zombie Walk.fbx', (walkAnim) => {
+                loader.load('models/zombi/Zombie Attack.fbx', (attackAnim) => {
+                    this.setUpAnimation(idleAnim, walkAnim, attackAnim)
+                });
+            });
+        
+        })
+        
+      
+    }
+
+    setUpAnimation(idleAnim, walkAnim, attackAnim){
+        this.zombie = idleAnim;
+        this.mixer = new THREE.AnimationMixer(this.zombie);
+  
+        this.idleAction = this.mixer.clipAction(this.zombie.animations[0]);
+        this.currentAction = this.activeAction = this.idleAction;
+        this.idleAction.play();
+  
+        this.zombie.scale.set(0.2, 0.2, 0.2);
+        this.zombie.position.set(this.x, 0, this.z);
+        this.scene.add(this.zombie);
+  
+        this.createZombiePhysicsBody();
+  
+        // Cargar animaciones walk
+        this.walkAction = this.mixer.clipAction(walkAnim.animations[0]);
+        this.walkAction.setEffectiveWeight(1);
+        this.enhanceAnimationClip(walkAnim.animations[0], 1.1);
+        
+  
+        // Cargar animaciones attack
+        this.attackAction = this.mixer.clipAction(attackAnim.animations[0]);
+        this.attackAction.setEffectiveWeight(1);
+        this.attackAction.clampWhenFinished = true;
+        this.attackAction.loop = THREE.LoopOnce;
+        this.enhanceAnimationClip(attackAnim.animations[0], 1);
+        
+  
+        this.mixer.addEventListener('finished', (e) => {
+          if (e.action === this.attackAction) {
+            this.fadeToAction(this.walkAction, 0.3);
+          }
+        });
+  
+        this.createAttackTrigger();
+    }
+    
+  
+    // ----------------------------------------------------------
+    // CREAR COLLIDER FÍSICO DEL ZOMBI
+    // ----------------------------------------------------------
+    createZombiePhysicsBody() {
+      const shape = new CANNON.Box(new CANNON.Vec3(8, 12, 8));
+      this.body = new CANNON.Body({
+        mass: 1,
+        material: new CANNON.Material(),
+        linearDamping: 0.95,
+        fixedRotation: true
+      });
+      this.body.addShape(shape);
+      this.body.position.set(this.x, 1, this.z);
+  
+      this.world.addBody(this.body);
+      this.zombie.body = this.body;
+    }
+  
+    // ----------------------------------------------------------
+    // CREAR TRIGGER DE ATAQUE
+    // ----------------------------------------------------------
+    createAttackTrigger() {
+      const triggerRadius = 8;
+      const triggerShape = new CANNON.Sphere(triggerRadius);
+      this.attackTrigger = new CANNON.Body({ mass: 0 });
+      this.attackTrigger.addShape(triggerShape);
+      this.attackTrigger.collisionResponse = false;
+  
+      this.world.addBody(this.attackTrigger);
+
+      this.attackTrigger.addEventListener('collide', function(e) {
+        console.log(e.body.id)
+          if (e.body.id === player.body.id && !isPlayerDead) {
+              console.log("muerto");
+              isPlayerDead = true;
+          }
+      });
+
+    }
+  
+    // ----------------------------------------------------------
+    // TRANSICIÓN ENTRE ANIMACIONES
+    // ----------------------------------------------------------
+    fadeToAction(newAction, duration = 0.5) {
+      if (!newAction) return;
+      if (this.currentAction && this.currentAction !== newAction) {
+        this.currentAction.fadeOut(duration);
+      }
+  
+      newAction.reset()
+        .setEffectiveTimeScale(1)
+        .setEffectiveWeight(1)
+        .fadeIn(duration)
+        .play();
+  
+      this.currentAction = this.activeAction = newAction;
+  
+      if (newAction === this.attackAction) this.startAttack();
+    }
+  
+    // ----------------------------------------------------------
+    // ATAQUE
+    // ----------------------------------------------------------
+    startAttack() {
+      this.isAttacking = true;
+      this.attackTimer = 0;
+      this.attackTriggerActive = false;
+    }
+  
+    resetAttackTimer() {
+      this.attackTimer = 0;
+      this.isAttacking = false;
+      this.attackTriggerActive = false;
+    }
+  
+    // ----------------------------------------------------------
+    // MEJORA DE ANIMACIÓN
+    // ----------------------------------------------------------
+    enhanceAnimationClip(clip, intensity) {
+      clip.tracks.forEach(track => {
+        if (track.name.includes('rotation')) {
+          for (let i = 0; i < track.values.length; i++) {
+            track.values[i] *= intensity;
+          }
+        } else if (track.name.includes('position')) {
+          for (let i = 0; i < track.values.length; i += 3) {
+            track.values[i] *= intensity;     // X
+            track.values[i + 2] *= intensity; // Z
+          }
+        }
+      });
+    }
+  
+    // ----------------------------------------------------------
+    // MOVIMIENTO DEL ZOMBI
+    // ----------------------------------------------------------
+    updateMovement(dx, dz, dir) {
+      if (!this.zombie || !this.body) return;
+  
+      if (this.activeAction === this.walkAction) {
+        const dirVec = new CANNON.Vec3(dx, 0, dz).unit();
+        const speed = 30;
+        this.body.velocity.x = -dirVec.x * speed;
+        this.body.velocity.z = -dirVec.z * speed;
+      }
+  
+      if (this.activeAction === this.walkAction || this.activeAction === this.attackAction) {
+        const angle = Math.atan2(dx, dz) + Math.PI;
+        this.zombie.rotation.y = angle;
+      }
+    }
+  
+    // ----------------------------------------------------------
+    // ACTUALIZACIÓN GENERAL
+    // ----------------------------------------------------------
+    update(delta) {
+      if (!this.zombie) return;
+  
+      const dx = this.zombie.position.x - this.player.position.x;
+      const dz = this.zombie.position.z - this.player.position.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+      const dir = new CANNON.Vec3(dx, 0, dz).unit();
+  
+      this.updateMovement(dx, dz, dir);
+  
+      if (this.currentAction === this.idleAction && distance < 60) {
+        this.fadeToAction(this.walkAction, 0.4);
+      } else if (this.currentAction === this.walkAction && distance < 20) {
+        this.fadeToAction(this.attackAction, 0.2);
+      } else if (this.currentAction === this.walkAction && distance > 65) {
+        this.fadeToAction(this.idleAction, 0.5);
+      }
+  
+      // Actualizar animaciones
+      this.mixer.update(delta);
+  
+      if (this.body) {
+        this.body.position.y = 1;
+        this.body.velocity.y = 0;
+        this.zombie.position.x = this.body.position.x - 1;
+        this.zombie.position.y = this.body.position.y - 1.1;
+        this.zombie.position.z = this.body.position.z - 2;
+  
+        // --- Lógica del trigger ---
+        if (this.attackTrigger) {
+          if (this.currentAction === this.attackAction && this.isAttacking) {
+            this.attackTimer += delta;
+  
+            if (this.attackTimer >= 0.4 && !this.attackTriggerActive) {
+              this.attackTriggerActive = true;
+            }
+  
+            if (this.attackTriggerActive) {
+              const attackDistance = 10;
+              const attackOffset = new CANNON.Vec3(
+                -dir.x * attackDistance,
+                5,
+                -dir.z * attackDistance
+              );
+  
+              this.attackTrigger.position.x = this.body.position.x + attackOffset.x;
+              this.attackTrigger.position.y = this.body.position.y + attackOffset.y;
+              this.attackTrigger.position.z = this.body.position.z + attackOffset.z;
+            }
+          } else {
+            this.attackTrigger.position.set(this.body.position.x, -50, this.body.position.z);
+            if (this.isAttacking) this.resetAttackTimer();
+          }
+        }
+      }
+    }
+  }
