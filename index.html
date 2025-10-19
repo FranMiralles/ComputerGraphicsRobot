@@ -1,10 +1,4 @@
 <!doctype html>
-<!-- 
-  Ejemplos sobre Three.js : Cubo texturado animado
-   	Cubo con color por vertice y mapa uv sobre textura en cruz;
-   	Util para comprobar si funciona Threejs sobre el navegador.
-  rvivo@upv.es 2022
--->
 <html lang="es">
 	<head>
 		<meta charset='utf-8'>
@@ -15,9 +9,54 @@
 				margin: 0px;
 				overflow: hidden;
 			}
+
+			#hud {
+				position: absolute;
+				bottom: 10px;
+				left: 10px;
+				width: 250px;
+				color: #fff;
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				pointer-events: none;
+				user-select: none;
+			}
+
+			#hud-bg {
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				width: 250px;
+				opacity: 0.5;
+				z-index: 0;
+			}
+
+			#stats {
+				position: relative;
+				z-index: 1;
+				padding: 15px;
+			}
+
+			#stats p {
+				margin: 5px 0;
+				font-size: 16px;
+			}
+
+			#stats span {
+				font-weight: bold;
+				color: #0f0;
+			}
 		</style>
 	</head>
 	<body>
+		<div id="hud">
+		<div id="stats">
+			<p>HP: <span id="hp-value">100</span></p>
+			<p>Velocidad: <span id="velocity-value">50</span></p>
+			<p>Daño: <span id="damage-value">20</span></p>
+			<p>Empuje: <span id="push-value">20</span></p>
+			<p>Baterías: <span id="battery-value">0</span></p>
+		</div>
+		</div>
 		<!-- Contenedor del app -->
 		<div id="container"></div>
 
@@ -30,6 +69,7 @@
 		<script src="lib/index.min.js"></script>
 		<script src="lib/FBXLoader.js"></script>
 
+		<script src="js/game/hud.js"></script>
 		<script src="js/game/powerUps.js"></script>
 		<script src="js/game/zombie.js"></script>
 		<script src="js/game/materials.js"></script>
@@ -38,7 +78,5 @@
 		<script src="js/game/UI.js"></script>
 		<script src="js/game/mapGenerator.js"></script>
 		<script src="js/game/main.js"></script>
-		
-
 	</body>
 </html>

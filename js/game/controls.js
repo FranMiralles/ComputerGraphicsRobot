@@ -37,6 +37,17 @@ document.addEventListener('keydown', (event) => {
           startAttack();
         }
         break;
+      case 'KeyG':
+        console.log("God mode set on")
+        playerHP = 2000;
+        playerVelocity = 250;
+        playerVelocityIncrement = 0;
+        pushForce = 5000;
+        pushForceIncrement = 0;
+        damage = 100;
+        damageIncrement = 0;
+        battery = 1;
+        break;
     }
 });
   

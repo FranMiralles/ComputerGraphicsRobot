@@ -109,8 +109,29 @@ function loadScene() {
   const ceilingData = createCeiling(rooms, sceneData.corridors)
   
   // Crear jugador
-  healPlane = createPowerUp(farRooms[0].x + 20, farRooms[0].z + 20, "heal")
+  healPlane = createPowerUp(farRooms[0].x + 20, farRooms[0].z + 20, "speed")
   powerUps.push(healPlane)
+
+  rooms.forEach(room => {
+    // Verificar si esta room NO está en farRooms
+    const isFarRoom = farRooms.some(farRoom => 
+        farRoom.x === room.x && farRoom.z === room.z
+    );
+    
+    if (!isFarRoom) {
+        // Tipos de power-up disponibles
+        const powerUpTypes = ["heal", "damage", "push", "speed"];
+        
+        // Elegir un tipo aleatorio
+        const randomType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+        
+        // Crear el power-up
+        const powerUp = createPowerUp(room.x, room.z, randomType);
+        powerUps.push(powerUp);
+    }
+  });
+
+
   createPlayer(farRooms[0].x, farRooms[0].z)
 
   
@@ -199,7 +220,7 @@ function update()
     const distance = powerUp.obj.position.distanceTo(player.position);
     
     // Si la distancia es menor que 12, eliminar el power-up
-    if (distance < 12) {
+    if (distance < 15) {
         // Eliminar de la escena
         scene.remove(powerUp.obj);
         
@@ -370,6 +391,8 @@ function update()
   } else {
     cameraControls.update();
   }
+
+  updateHUD()
 }
 
 function render()
