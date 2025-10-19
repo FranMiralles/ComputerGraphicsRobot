@@ -201,7 +201,7 @@ function createCorridor(roomA, roomB, material) {
       const door = createDoor(
         midX,           // posición x en el centro
         midZ,           // posición z en el centro
-        WALL_THICKNESS, // grosor
+        WALL_THICKNESS + 5, // grosor
         corridorWidth,  // ancho del pasillo
         doorMaterial,
         roomA,
@@ -267,7 +267,7 @@ function createCorridor(roomA, roomB, material) {
         midX,           // posición X centro
         midZ,           // posición Z centro
         corridorWidth,  // ancho del pasillo
-        WALL_THICKNESS, // grosor
+        WALL_THICKNESS + 5, // grosor
         doorMaterial,
         roomA,
         roomB
@@ -407,7 +407,7 @@ function createCorridor(roomA, roomB, material) {
       });
       const ceilingMap = new THREE.Mesh(ceilingMapGeometry, ceilingMapMaterial);
       ceilingMap.rotation.x = -Math.PI / 2;
-      ceilingMap.position.set(room.x, WALL_HEIGHT + 0.5, room.z);
+      ceilingMap.position.set(room.x, WALL_HEIGHT  * 2, room.z);
       scene.add(ceilingMap);
 
     });
@@ -422,7 +422,7 @@ function createCorridor(roomA, roomB, material) {
         const corridorCeiling = new THREE.Mesh(corridorCeilingGeometry, corridorMaterial);
         corridorCeiling.rotation.x = -Math.PI / 2;
         corridorCeiling.position.copy(corridor.corridor.mesh.position);
-        corridorCeiling.position.y = WALL_HEIGHT  * 2; // Mover a altura de paredes
+        corridorCeiling.position.y = WALL_HEIGHT + 0.1; // Mover a altura de paredes
         scene.add(corridorCeiling);
         
         ceilingData.corridorCeilings.push({

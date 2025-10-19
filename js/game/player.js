@@ -6,8 +6,6 @@ let isPlayerDead = false;
 let attackTriggerPlayerPush; // Trigger
 let attackTriggerPlayerPushMesh; // Trigger
 
-let triggerMesh;
-
 let pushDirection;
 
 let baseballBat;
@@ -128,18 +126,6 @@ function createPlayer(x, z){
         }
     });
     });
-    
-    
-    const triggerGeometry = new THREE.SphereGeometry(triggerRadius, 16, 16);
-    const triggerMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xff0000, 
-        transparent: true, 
-        opacity: 0.3,
-        wireframe: true 
-    });
-    triggerMesh = new THREE.Mesh(triggerGeometry, triggerMaterial);
-    scene.add(triggerMesh);
-
   
 }
 

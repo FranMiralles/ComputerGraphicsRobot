@@ -16,6 +16,7 @@ var isAttackInProgress = false;
 var nearestDoor = null;
 var isOpeningDoor = false;
 var doorOpeningSpeed = 15; // Velocidad de apertura
+var numOpenedDoors = 0
   
 // Event listeners para controles
 document.addEventListener('keydown', (event) => {
@@ -45,7 +46,6 @@ document.addEventListener('keydown', (event) => {
         break;
       case 'KeyE': // Tecla para abrir puerta
         if (nearestDoor && !nearestDoor.isOpen && !isOpeningDoor) {
-          console.log("Abrir puerta")
             openDoor(nearestDoor);
         }
         break;
@@ -161,6 +161,7 @@ function openDoor(door) {
     }else{
       reiniciarZombis(door.roomB)
     }
+    numOpenedDoors = numOpenedDoors + 1
 }
 
 

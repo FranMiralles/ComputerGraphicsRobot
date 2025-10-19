@@ -26,6 +26,7 @@ let flashlightBaseIntensity = 2.5;
 let flashlightOffTimer = 0;
 
 
+
 // 1-inicializa 
 init();
 // 2-Crea una escena
@@ -104,7 +105,7 @@ function loadScene() {
   redLight.shadow.mapSize.height = 1024;
   scene.add(redLight);
   */
- flashlight = new THREE.SpotLight(0xffffff, flashlightBaseIntensity, 220, Math.PI / 5, 0.8, 2);
+  flashlight = new THREE.SpotLight(0xffffff, flashlightBaseIntensity, 220, Math.PI / 5, 0.8, 2);
   // color, intensidad, distancia, ángulo, penumbra, decaimiento
   flashlight.position.set(-450, 10, -470);
   flashlight.castShadow = true;
@@ -137,6 +138,8 @@ function loadScene() {
   const sceneData = createConnectingCorridors(rooms, rows, cols); // sceneData.corridors, sceneData.walls, sceneData.connections
 
   const ceilingData = createCeiling(rooms, sceneData.corridors)
+
+
   
 
   rooms.forEach(room => {
@@ -160,25 +163,37 @@ function loadScene() {
 
   var powerUp = createPowerUp(farRooms[1].x, farRooms[1].z, "battery");
   powerUps.push(powerUp);
-  createPlayer(farRooms[0].x, farRooms[0].z - 20)
+  createPlayer(farRooms[0].x, farRooms[0].z - 80)
 
+
+  var spawnPosition = getDirectionAndPosition( new THREE.Vector3(farRooms[0].x, 0, farRooms[0].z), new THREE.Vector3(farRooms[1].x, 0, farRooms[1].z))
 
   
   zombieManager = new ZombieManager(zombies, [
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
-    [farRooms[0].x, farRooms[0].z],
+    [spawnPosition.x + 5, spawnPosition.z],
+    [spawnPosition.x, spawnPosition.z + 5],
+    [spawnPosition.x, spawnPosition.z],
+    [spawnPosition.x + 5, spawnPosition.z + 5],
+    [spawnPosition.x, spawnPosition.z - 5],
+    [spawnPosition.x - 5, spawnPosition.z],
+    [spawnPosition.x- 5, spawnPosition.z- 5],
+    [spawnPosition.x- 5, spawnPosition.z + 5],
   ], scene, world, player)
+
+
 }
 
-
-
-
+function getDirectionAndPosition(positionA, positionB, distance = 220) {
+    // Calcular dirección desde B hacia A
+    const direction = new THREE.Vector3();
+    direction.subVectors(positionA, positionB).normalize();
+    
+    // Calcular nueva posición desde A en esa dirección
+    const newPosition = new THREE.Vector3();
+    newPosition.copy(positionA).add(direction.multiplyScalar(distance));
+    
+    return newPosition
+}
 
 
 
@@ -394,8 +409,6 @@ function update()
         attackTriggerPlayerPush.position.set(player.position.x, -50, player.position.z);
     }
 
-    triggerMesh.position.copy(attackTriggerPlayerPush.position);
-    triggerMesh.quaternion.copy(attackTriggerPlayerPush.quaternion);
 
     // Sincronizar el Mesh con el cuerpo físico
     player.position.copy(player.body.position);
