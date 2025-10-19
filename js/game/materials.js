@@ -49,3 +49,7 @@ const groundMaterial = new THREE.MeshBasicMaterial({
     color: "black",
     side: THREE.DoubleSide
 });
+
+
+const WoodTexture = new THREE.TextureLoader().load('images/wood512.jpg');
+const batMaterial = new THREE.MeshPhongMaterial({ map: WoodTexture, shininess: 60 });

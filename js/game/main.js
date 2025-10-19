@@ -15,6 +15,14 @@ let zombies = [];
 
 let zombieManager;
 
+let delta;
+
+
+powerUps = []
+
+
+
+
 
 // 1-inicializa 
 init();
@@ -78,13 +86,13 @@ function loadScene() {
 
   // --- LUZ DIRECCIONAL (luna o luz distante) ---
   // Baja intensidad y color azulado
-  const directional = new THREE.DirectionalLight(0x88aaff, 0.3);
+  const directional = new THREE.DirectionalLight(0x88aaff, 0.8); // 0.3
   directional.position.set(10, 20, 10);
   directional.castShadow = true;
   scene.add(directional);
 
   // Niebla
-  scene.fog = new THREE.FogExp2(0x000000, 0.01);
+  scene.fog = new THREE.FogExp2(0x000000, 0.005);
 
   // Sombras
   renderer.shadowMap.enabled = true;
@@ -99,9 +107,10 @@ function loadScene() {
   const sceneData = createConnectingCorridors(rooms, rows, cols); // sceneData.corridors, sceneData.walls, sceneData.connections
 
   const ceilingData = createCeiling(rooms, sceneData.corridors)
-  addCreepyLights(scene, rooms)
   
   // Crear jugador
+  healPlane = createPowerUp(farRooms[0].x + 20, farRooms[0].z + 20, "heal")
+  powerUps.push(healPlane)
   createPlayer(farRooms[0].x, farRooms[0].z)
 
   
@@ -114,64 +123,6 @@ function loadScene() {
   
 }
 
-function addCreepyLights(scene, rooms) {
-  rooms.forEach((room) => {
-    // 1️⃣ Selecciona color al azar
-    const r = Math.random();
-    let color;
-    if (r < 0.25) color = 0xff0000;       // rojo
-    else if (r < 0.5) color = 0xaa00ff;   // morado
-    else if (r < 0.75) color = 0x00ff00;  // verde
-    else color = 0x222222;                // luz muy oscura
-
-    // 2️⃣ Crea la luz CON PARÁMETROS CORRECTOS
-    const light = new THREE.PointLight(color, 0.8, 30, 1.5); // (color, intensity, distance, decay)
-    light.position.set(room.x, WALL_HEIGHT - 2, room.z); // Un poco más baja
-    
-    // Habilita sombras si quieres
-    light.castShadow = true;
-    light.shadow.mapSize.width = 512;
-    light.shadow.mapSize.height = 512;
-    
-    scene.add(light);
-
-    // 3️⃣ AÑADIR ESFERA VISUAL (opcional, para debugging)
-    const sphereGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-    const sphereMaterial = new THREE.MeshBasicMaterial({ 
-      color: color,
-      transparent: true,
-      opacity: 0.6
-    });
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.copy(light.position);
-    scene.add(sphere);
-
-    // 4️⃣ Efecto de parpadeo corregido
-    const baseIntensity = 0.8; // Usar valor fijo en lugar de light.intensity
-
-    function flicker() {
-      const duration = 100 + Math.random() * 300;
-      const nextIntensity = baseIntensity * (0.2 + Math.random() * 0.8);
-      const startIntensity = light.intensity;
-      const startTime = performance.now();
-
-      function animateFlicker(time) {
-        const elapsed = time - startTime;
-        const t = Math.min(elapsed / duration, 1);
-        light.intensity = THREE.MathUtils.lerp(startIntensity, nextIntensity, t);
-
-        if (t < 1) {
-          requestAnimationFrame(animateFlicker);
-        } else {
-          setTimeout(flicker, 200 + Math.random() * 800);
-        }
-      }
-      requestAnimationFrame(animateFlicker);
-    }
-
-    flicker();
-  });
-}
 
 
 
@@ -231,8 +182,52 @@ function update()
 {
   stats.update()
   // Obtener delta time, sin importar el estado
-  const delta = clock.getDelta();
+  delta = clock.getDelta();
   world.step(1 / 60); // avanza la simulación física
+
+  // Rotar powerups
+  for (let i = powerUps.length - 1; i >= 0; i--) {
+    const powerUp = powerUps[i];
+    
+    // Rotación del power-up
+    powerUp.obj.rotation.y = powerUp.obj.rotation.y + 1 * delta;
+    if (powerUp.obj.rotation.y > 2 * Math.PI) {
+        powerUp.obj.rotation.y = powerUp.obj.rotation.y - 2 * Math.PI;
+    }
+    
+    // Calcular distancia al jugador
+    const distance = powerUp.obj.position.distanceTo(player.position);
+    
+    // Si la distancia es menor que 12, eliminar el power-up
+    if (distance < 12) {
+        // Eliminar de la escena
+        scene.remove(powerUp.obj);
+        
+        // Eliminar del array
+        powerUps.splice(i, 1);
+        
+        console.log("Power-up recogido y eliminado");
+        
+        // Aquí puedes agregar efectos de recolección
+        if (powerUp.type == "heal"){
+          playerHP = 100
+        }
+        if (powerUp.type == "speed"){
+          playerVelocity = playerVelocity + playerVelocityIncrement
+        }
+        if (powerUp.type == "push"){
+          pushForce = pushForce + pushForceIncrement
+        }
+        if (powerUp.type == "damage"){
+          damage = damage + damageIncrement
+        }
+        if (powerUp.type == "battery"){
+          battery = battery + 1
+        }
+    }
+  }
+
+
 
   player.body.position.y = 12;
   player.body.velocity.y = 0;
@@ -283,6 +278,69 @@ function update()
   player.body.velocity.y = 0;
 
 
+  // Attack Player Push
+  if (isAttackInProgress) {
+    if (!isBatSwinging) {
+        isBatSwinging = true;
+        batSwingProgress = 0;
+    }
+  }
+  // Animación del bate
+  if (isBatThrusting && baseballBat) {
+    // Aumentar el progreso normalizado (0 → 1)
+    batThrustProgress += delta / batThrustDuration;
+
+    // Progresión tipo "ida y vuelta" (usamos sinusoide para suavizar)
+    const t = Math.sin(Math.min(batThrustProgress, 1) * Math.PI);
+
+    // Interpolar posición y rotación
+    baseballBat.position.lerpVectors(batStartPos, batEndPos, t);
+    baseballBat.rotation.x = THREE.MathUtils.lerp(batStartRotX, batEndRotX, t);
+
+    // Cuando termina la animación (ida y vuelta completa)
+    if (batThrustProgress >= 1) {
+        isBatThrusting = false;
+        baseballBat.position.copy(batStartPos);
+        baseballBat.rotation.x = batStartRotX;
+    }
+  }
+      
+
+  if (isAttackInProgress) {
+    attackCooldown -= delta;
+    
+    // Desactivar el push a los 0.5 segundos
+    if (attackCooldown <= 0.5 && attackingPush) {
+        attackingPush = false;
+        console.log("Ataque desactivado");
+    }
+    
+    // Terminar el ataque completamente a los 1 segundo
+    if (attackCooldown <= 0) {
+        isAttackInProgress = false;
+        console.log("Ataque terminado, listo para nuevo ataque");
+    }
+  }
+
+  if (attackingPush) {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    pushDirection = direction;
+    
+    // Multiplicar por la distancia deseada
+    direction.multiplyScalar(20);
+    
+    attackTriggerPlayerPush.position.set(
+        player.position.x + direction.x,
+        player.position.y + 2,  // Altura fija sobre el jugador
+        player.position.z + direction.z
+    );
+  } else {
+      attackTriggerPlayerPush.position.set(player.position.x, -50, player.position.z);
+  }
+
+  triggerMesh.position.copy(attackTriggerPlayerPush.position);
+  triggerMesh.quaternion.copy(attackTriggerPlayerPush.quaternion);
 
   // Sincronizar el Mesh con el cuerpo físico
   player.position.copy(player.body.position);

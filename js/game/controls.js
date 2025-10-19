@@ -6,6 +6,10 @@ var controls = {
     turnLeft: false,
     turnRight: false
 };
+
+var attackingPush = false;
+var attackCooldown = 0;
+var isAttackInProgress = false;
   
 // Event listeners para controles
 document.addEventListener('keydown', (event) => {
@@ -27,6 +31,11 @@ document.addEventListener('keydown', (event) => {
         break;
       case 'ArrowRight':
         controls.turnRight = true;
+        break;
+      case 'KeyQ':
+        if (!isAttackInProgress) {
+          startAttack();
+        }
         break;
     }
 });
@@ -53,3 +62,14 @@ document.addEventListener('keyup', (event) => {
         break;
     }
 });
+
+function startAttack() {
+  console.log("Q - Iniciando ataque");
+  isAttackInProgress = true;
+  attackCooldown = 1.0;
+  attackingPush = true;
+  if (!isBatThrusting) {
+      isBatThrusting = true;
+      batThrustProgress = 0;
+  }
+}

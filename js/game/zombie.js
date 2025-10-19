@@ -1,3 +1,5 @@
+zombiBodies = []
+
 class ZombieManager {
     constructor(zombies, positions, scene, world, player){
         positions.forEach((position) => {
@@ -29,63 +31,148 @@ class Zombie {
   
       this.x = x;
       this.z = z;
+
+      this.hp = 100;
+
+      this.deathAction = null;
+      this.isDead = false;
+      this.canTakeDamage = true;
+      this.damageCooldown = 1; // segundos de invulnerabilidad tras recibir daño
+      this.damageTimer = 0;
   
       this.loadZombieModel();
+      zombiBodies.push(this);
     }
   
     // ----------------------------------------------------------
     // CARGA DEL MODELO Y ANIMACIONES
     // ----------------------------------------------------------
-    
-    loadZombieModel() {
-        const loader = new THREE.FBXLoader();
-        loader.load('models/zombi/Zombie Idle.fbx', (idleAnim) => {
-            loader.load('models/zombi/Zombie Walk.fbx', (walkAnim) => {
-                loader.load('models/zombi/Zombie Attack.fbx', (attackAnim) => {
-                    this.setUpAnimation(idleAnim, walkAnim, attackAnim)
-                });
-            });
-        
-        })
-        
-      
+    reduceHP(damage) {
+      if (this.isDead || !this.canTakeDamage) return;
+      this.hp -= damage;
+
+      // activar cooldown
+      this.canTakeDamage = false;
+      this.damageTimer = 0;
+
+      // si muere
+      if (this.hp <= 0) {
+          this.die();
+      }
     }
 
-    setUpAnimation(idleAnim, walkAnim, attackAnim){
-        this.zombie = idleAnim;
-        this.mixer = new THREE.AnimationMixer(this.zombie);
-  
-        this.idleAction = this.mixer.clipAction(this.zombie.animations[0]);
-        this.currentAction = this.activeAction = this.idleAction;
-        this.idleAction.play();
-  
-        this.zombie.scale.set(0.2, 0.2, 0.2);
-        this.zombie.position.set(this.x, 0, this.z);
-        this.scene.add(this.zombie);
-  
-        this.createZombiePhysicsBody();
-  
-        // Cargar animaciones walk
-        this.walkAction = this.mixer.clipAction(walkAnim.animations[0]);
-        this.walkAction.setEffectiveWeight(1);
-        this.enhanceAnimationClip(walkAnim.animations[0], 1.1);
-        
-  
-        // Cargar animaciones attack
-        this.attackAction = this.mixer.clipAction(attackAnim.animations[0]);
-        this.attackAction.setEffectiveWeight(1);
-        this.attackAction.clampWhenFinished = true;
-        this.attackAction.loop = THREE.LoopOnce;
-        this.enhanceAnimationClip(attackAnim.animations[0], 1);
-        
-  
-        this.mixer.addEventListener('finished', (e) => {
-          if (e.action === this.attackAction) {
-            this.fadeToAction(this.walkAction, 0.3);
+    die() {
+      if (this.isDead) return;
+      this.isDead = true;
+
+      // Detener el cuerpo físico
+      this.body.velocity.set(0, 0, 0);
+      this.body.mass = 0; // ya no se mueve
+      this.body.updateMassProperties();
+
+      // Mover el cuerpo lejos para que no estorbe al jugador
+      this.zombie.body.position.y = -20;
+
+      // Desactivar ataques
+      this.isAttacking = false;
+      this.attackTriggerActive = false;
+
+      // Cambiar animación a muerte
+      if (this.deathAction) {
+          this.fadeToAction(this.deathAction, 0.3);
+          this.deathAction.clampWhenFinished = true;
+          this.deathAction.loop = THREE.LoopOnce;
+      } else {
+          this.fadeToAction(this.idleAction, 0.2);
+      }
+
+      setTimeout(() => this.recycle(), 10000);
+    }
+
+    recycle() {
+        // Restaurar valores iniciales
+        this.hp = 100;
+        this.isDead = false;
+        this.canTakeDamage = true;
+        this.damageTimer = 0;
+        this.attackTimer = 0;
+        this.isAttacking = false;
+        this.attackTriggerActive = false;
+
+        // Reactivar masa
+        this.body.mass = 1;
+        this.body.updateMassProperties();
+
+        // Colocar en posición base
+        this.body.position.set(0, -40, 0);
+        this.body.velocity.set(0, 0, 0);
+        this.zombie.position.set(0, -40, 0);
+
+        // Resetear animaciones a idle
+        if (this.idleAction) {
+            this.fadeToAction(this.idleAction, 0.3);
+        }
+
+        // También reposicionar el trigger de ataque fuera del área
+        if (this.attackTrigger) {
+            this.attackTrigger.position.set(0, -35, 0);
+        }
+
+        console.log("Zombi reciclado y listo para reaparecer");
+    }
+
+    loadZombieModel() {
+      const loader = new THREE.FBXLoader();
+      loader.load('models/zombi/Zombie Idle.fbx', (idleAnim) => {
+          loader.load('models/zombi/Zombie Walk.fbx', (walkAnim) => {
+              loader.load('models/zombi/Zombie Attack.fbx', (attackAnim) => {
+                  loader.load('models/zombi/Zombie Death.fbx', (deathAnim) => {
+                      this.setUpAnimation(idleAnim, walkAnim, attackAnim, deathAnim);
+                  });
+              });
+          });
+      });
+    }
+
+    setUpAnimation(idleAnim, walkAnim, attackAnim, deathAnim) {
+      this.zombie = idleAnim;
+      this.mixer = new THREE.AnimationMixer(this.zombie);
+
+      this.idleAction = this.mixer.clipAction(this.zombie.animations[0]);
+      this.currentAction = this.activeAction = this.idleAction;
+      this.idleAction.play();
+
+      this.zombie.scale.set(0.2, 0.2, 0.2);
+      this.zombie.position.set(this.x, 0, this.z);
+      this.scene.add(this.zombie);
+
+      this.createZombiePhysicsBody();
+
+      // Walk
+      this.walkAction = this.mixer.clipAction(walkAnim.animations[0]);
+      this.walkAction.setEffectiveWeight(1);
+      this.enhanceAnimationClip(walkAnim.animations[0], 1.1);
+
+      // Attack
+      this.attackAction = this.mixer.clipAction(attackAnim.animations[0]);
+      this.attackAction.setEffectiveWeight(1);
+      this.attackAction.clampWhenFinished = true;
+      this.attackAction.loop = THREE.LoopOnce;
+      this.enhanceAnimationClip(attackAnim.animations[0], 1);
+
+      // Death
+      this.deathAction = this.mixer.clipAction(deathAnim.animations[0]);
+      this.deathAction.setEffectiveWeight(1);
+      this.deathAction.clampWhenFinished = true;
+      this.deathAction.loop = THREE.LoopOnce;
+
+      this.mixer.addEventListener('finished', (e) => {
+          if (e.action === this.attackAction && !this.isDead) {
+              this.fadeToAction(this.walkAction, 0.3);
           }
-        });
-  
-        this.createAttackTrigger();
+      });
+
+      this.createAttackTrigger();
     }
     
   
@@ -97,9 +184,9 @@ class Zombie {
       this.body = new CANNON.Body({
         mass: 1,
         material: new CANNON.Material(),
-        linearDamping: 0.95,
-        fixedRotation: true
-      });
+        linearDamping: 0.1,
+        angularDamping: 0.1,
+    });
       this.body.addShape(shape);
       this.body.position.set(this.x, 1, this.z);
   
@@ -206,7 +293,22 @@ class Zombie {
     // ----------------------------------------------------------
     update(delta) {
       if (!this.zombie) return;
-  
+
+      // --- Cooldown de daño ---
+      if (!this.canTakeDamage) {
+          this.damageTimer += delta;
+          if (this.damageTimer >= this.damageCooldown) {
+              this.canTakeDamage = true;
+              this.damageTimer = 0;
+          }
+      }
+
+      // --- Si está muerto, no hace nada ---
+      if (this.isDead) {
+          this.mixer.update(delta); // reproducir animación de muerte
+          return;
+      }
+        
       const dx = this.zombie.position.x - this.player.position.x;
       const dz = this.zombie.position.z - this.player.position.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
@@ -229,7 +331,9 @@ class Zombie {
         this.body.position.y = 1;
         this.body.velocity.y = 0;
         this.zombie.position.x = this.body.position.x - 1;
-        this.zombie.position.y = this.body.position.y - 1.1;
+        if(!this.isDead){
+          this.zombie.position.y = this.body.position.y - 1.1;
+        }
         this.zombie.position.z = this.body.position.z - 2;
   
         // --- Lógica del trigger ---
@@ -254,7 +358,7 @@ class Zombie {
               this.attackTrigger.position.z = this.body.position.z + attackOffset.z;
             }
           } else {
-            this.attackTrigger.position.set(this.body.position.x, -50, this.body.position.z);
+            this.attackTrigger.position.set(this.body.position.x, 50, this.body.position.z);
             if (this.isAttacking) this.resetAttackTimer();
           }
         }
