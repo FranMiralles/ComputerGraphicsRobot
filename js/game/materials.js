@@ -13,12 +13,11 @@ const roomTexture = new THREE.TextureLoader().load('images/ground.jpg');
 roomTexture.wrapS = roomTexture.wrapT = THREE.RepeatWrapping;
 roomTexture.minFilter = THREE.LinearMipMapLinearFilter;
 roomTexture.magFilter = THREE.LinearFilter;
-const roomMaterial = new THREE.MeshLambertMaterial({
+const roomMaterial = new THREE.MeshPhongMaterial({
     map: roomTexture,
-    roughness: 0.8,
     side: THREE.DoubleSide
 });
-  "metal_128"
+
 
 const corridorTexture = new THREE.TextureLoader().load('images/metal_128.jpg');
 corridorTexture.wrapS = corridorTexture.wrapT = THREE.RepeatWrapping;
@@ -26,9 +25,8 @@ corridorTexture.minFilter = THREE.LinearMipMapLinearFilter;
 corridorTexture.magFilter = THREE.LinearFilter;
 
 
-const corridorMaterial = new THREE.MeshLambertMaterial({
+const corridorMaterial = new THREE.MeshPhongMaterial({
     map: corridorTexture,
-    roughness: 0.8,
     side: THREE.DoubleSide
 });
   
@@ -39,10 +37,10 @@ wallTexture.magFilter = THREE.LinearFilter;
 
 const repeatPerUnit = 0.05;
 
-const wallMaterial = new THREE.MeshLambertMaterial({
+const wallMaterial = new THREE.MeshPhongMaterial({
   map: wallTexture,
-  roughness: 0.8,
-  metalness: 0.2
+  metalness: 0.2,
+  side: THREE.DoubleSide
 });
 
 const groundMaterial = new THREE.MeshBasicMaterial({
@@ -53,3 +51,15 @@ const groundMaterial = new THREE.MeshBasicMaterial({
 
 const WoodTexture = new THREE.TextureLoader().load('images/wood512.jpg');
 const batMaterial = new THREE.MeshPhongMaterial({ map: WoodTexture, shininess: 60 });
+
+
+const doorTexture = new THREE.TextureLoader().load('images/door.jpg');
+doorTexture.wrapS = THREE.RepeatWrapping;
+doorTexture.wrapT = THREE.RepeatWrapping;
+doorTexture.repeat.set(1, 1); // Mostrar la textura una vez
+
+const doorMaterial = new THREE.MeshPhongMaterial({
+    map: doorTexture,
+    metalness: 0.2,
+    side: THREE.DoubleSide
+});

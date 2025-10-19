@@ -6,6 +6,8 @@ class ZombieManager {
             zombies.push(new Zombie(scene, world, player, position[0], position[1]));
         });
     }
+
+    
 }
 
 class Zombie {
@@ -28,6 +30,10 @@ class Zombie {
       this.attackTimer = 0;
       this.isAttacking = false;
       this.attackTriggerActive = false;
+
+      this.attackTriggerMesh = null; // Añadir esta línea
+      this.attackTriggerActiveTime = 0.2; // Reducir tiempo activo (antes era indefinido)
+
   
       this.x = x;
       this.z = z;
@@ -206,14 +212,29 @@ class Zombie {
   
       this.world.addBody(this.attackTrigger);
 
+      this.createAttackTriggerMesh(triggerRadius);
+
       this.attackTrigger.addEventListener('collide', function(e) {
-        console.log(e.body.id)
           if (e.body.id === player.body.id && !isPlayerDead) {
-              console.log("muerto");
-              isPlayerDead = true;
+            playerReduceHP(e.body.id)
           }
       });
+    }
 
+    createAttackTriggerMesh(radius) {
+        const triggerGeometry = new THREE.SphereGeometry(radius, 12, 12);
+        const triggerMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.6
+        });
+        
+        this.attackTriggerMesh = new THREE.Mesh(triggerGeometry, triggerMaterial);
+        this.scene.add(this.attackTriggerMesh);
+        
+        // Posicionar inicialmente fuera de vista
+        this.attackTriggerMesh.position.set(0, -50, 0);
     }
   
     // ----------------------------------------------------------
@@ -341,13 +362,15 @@ class Zombie {
           if (this.currentAction === this.attackAction && this.isAttacking) {
             this.attackTimer += delta;
   
-            if (this.attackTimer >= 0.4 && !this.attackTriggerActive) {
+            if (this.attackTimer >= 1.1 && !this.attackTriggerActive) {
               this.attackTriggerActive = true;
             }
   
             if (this.attackTriggerActive) {
-              const attackDistance = 10;
-              const attackOffset = new CANNON.Vec3(
+
+              if(this.attackTimer <= 1.3){
+                const attackDistance = 12;
+                const attackOffset = new CANNON.Vec3(
                 -dir.x * attackDistance,
                 5,
                 -dir.z * attackDistance
@@ -356,11 +379,17 @@ class Zombie {
               this.attackTrigger.position.x = this.body.position.x + attackOffset.x;
               this.attackTrigger.position.y = this.body.position.y + attackOffset.y;
               this.attackTrigger.position.z = this.body.position.z + attackOffset.z;
+              }else{
+                this.attackTrigger.position.set(this.body.position.x, 50, this.body.position.z);
+              }
+
+              
             }
           } else {
             this.attackTrigger.position.set(this.body.position.x, 50, this.body.position.z);
             if (this.isAttacking) this.resetAttackTimer();
           }
+          this.attackTriggerMesh.position.copy(this.attackTrigger.position);
         }
       }
     }

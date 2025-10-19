@@ -1,7 +1,7 @@
 // Configuración global de las paredes
-const WALL_HEIGHT = 60;
+const WALL_HEIGHT = 70;
 const WALL_THICKNESS = 2;
-
+const doors = []
 
 // UTILIDADES
 function getRandomInt(min, max) {
@@ -10,13 +10,15 @@ function getRandomInt(min, max) {
   
 // CREACIÓN DE HABITACIONES
 function createRoom(x, z, width, depth) {
-    const geometry = new THREE.PlaneGeometry(width, depth);
-    const mesh = new THREE.Mesh(geometry, roomMaterial);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(x, 0, z);
-    scene.add(mesh);
-  
-    return { mesh, x, z, width, depth };
+  const geometry = new THREE.PlaneGeometry(width, depth);
+  //geometry.rotateX(Math.PI); // <- corrige las normales
+
+  const mesh = new THREE.Mesh(geometry, roomMaterial);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(x, 0, z);
+  scene.add(mesh);
+
+  return { mesh, x, z, width, depth };
 }
 
 function fixBoxUVs(geometry, repeatX, repeatY) {
@@ -62,6 +64,48 @@ function createWall(x, z, widthX, widthZ, material = wallMaterialWithTexture) {
       position: { x, z },
       dimensions: { widthX, widthZ, height: WALL_HEIGHT },
       material: wallMaterial
+  };
+}
+
+function createDoor(x, z, widthX, widthZ, material = doorMaterialWithTexture, roomA, roomB) {
+  const door = createDoorWithProperUVs(widthX, WALL_HEIGHT, widthZ);
+  wall = door[0]
+  wallGeometry = door[1]
+  /*
+  if (widthX == WALL_THICKNESS){
+    fixBoxUVs(wallGeometry, widthZ * repeatPerUnit, WALL_HEIGHT * repeatPerUnit);
+  }else{
+    fixBoxUVs(wallGeometry, widthX * repeatPerUnit, WALL_HEIGHT * repeatPerUnit);
+  }*/
+  
+  wall.position.set(x, WALL_HEIGHT / 2, z);
+  scene.add(wall);
+  
+  // Configurar las coordenadas UV para que la textura se aplique correctamente a todas las caras
+  
+  const boxShape = new CANNON.Box(new CANNON.Vec3(widthX / 2, WALL_HEIGHT / 2, widthZ / 2));
+  const boxBody = new CANNON.Body({ 
+      mass: 0,
+      material: wallMaterialCANNON 
+  });
+  boxBody.addShape(boxShape);
+  boxBody.position.set(x, WALL_HEIGHT / 2, z);
+
+  world.addBody(boxBody);
+  wallGeometry.body = boxBody;
+  
+  return {
+    mesh: wall,
+    body: boxBody, // Guardar referencia al cuerpo físico
+    type: 'door',
+    position: { x, z },
+    dimensions: { widthX, widthZ, height: WALL_HEIGHT },
+    material: wallMaterial,
+    roomA: roomA, 
+    roomB: roomB,
+    isOpen: false,     // Nueva propiedad
+    isOpening: false,  // Nueva propiedad
+    originalY: WALL_HEIGHT / 2 // Guardar posición original
   };
 }
   
@@ -117,117 +161,148 @@ function createWallsForRoom(room, connections, material) {
   
 //  CREACIÓN DE PASILLOS 
 function createCorridor(roomA, roomB, material) {
-    const dx = roomB.x - roomA.x;
-    const dz = roomB.z - roomA.z;
-    const corridorWidth = 50;
-  
-    const corridorData = {
-      roomA: roomA,
-      roomB: roomB,
-      corridor: null,
-      walls: [],
-      type: 'corridor'
-    };
-  
-    // === HORIZONTAL ===
-    if (Math.abs(dx) > Math.abs(dz)) {
-      const widthX = Math.abs(dx) - roomA.width;
-  
-      if (widthX > 0) {
-        // Suelo del pasillo
-        const corridor = new THREE.Mesh(
-          new THREE.PlaneGeometry(widthX, corridorWidth),
-          material
-        );
-        corridor.rotation.x = -Math.PI / 2;
-        corridor.position.set((roomA.x + roomB.x) / 2, 0.05, roomA.z);
-        scene.add(corridor);
-        
-        corridorData.corridor = {
-          mesh: corridor,
-          dimensions: { width: widthX, depth: corridorWidth },
-          position: { x: (roomA.x + roomB.x) / 2, z: roomA.z },
-          orientation: 'horizontal'
-        };
-  
-        // Paredes laterales
-        const wallOffset = corridorWidth / 2 + WALL_THICKNESS / 2;
-        const midX = (roomA.x + roomB.x) / 2;
-        const midZ = roomA.z;
-  
-        // Superior (+Z)
-        corridorData.walls.push(createWall(midX, midZ + wallOffset, widthX - WALL_THICKNESS, WALL_THICKNESS, wallMaterial));
-  
-        // Inferior (-Z)
-        corridorData.walls.push(createWall(midX, midZ - wallOffset, widthX - WALL_THICKNESS, WALL_THICKNESS, wallMaterial));
-  
-        // Paredes del lado de la habitación A
-        let posx = roomA.x + roomA.width / 2;
-        let posz = roomA.z + roomA.depth / 2 - (roomA.depth / 2 - corridorWidth / 2) / 2;
-        corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomA.depth / 2 - corridorWidth / 2, wallMaterial));
-        
-        posz = roomA.z - roomA.depth / 2 + (roomA.depth / 2 - corridorWidth / 2) / 2;
-        corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomA.depth / 2 - corridorWidth / 2, wallMaterial));
-  
-        // Paredes del lado de la habitación B
-        posx = roomB.x - roomB.width / 2;
-        posz = roomB.z + roomB.depth / 2 - (roomB.depth / 2 - corridorWidth / 2) / 2;
-        corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomB.depth / 2 - corridorWidth / 2, wallMaterial));
-        
-        posz = roomB.z - roomB.depth / 2 + (roomB.depth / 2 - corridorWidth / 2) / 2;
-        corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomB.depth / 2 - corridorWidth / 2, wallMaterial));
-      }
+  const dx = roomB.x - roomA.x;
+  const dz = roomB.z - roomA.z;
+  const corridorWidth = 60;
+
+  const corridorData = {
+    roomA: roomA,
+    roomB: roomB,
+    corridor: null,
+    walls: [],
+    type: 'corridor'
+  };
+
+  // === HORIZONTAL ===
+  if (Math.abs(dx) > Math.abs(dz)) {
+    const widthX = Math.abs(dx) - roomA.width;
+
+    if (widthX > 0) {
+      // Suelo del pasillo
+      const corridor = new THREE.Mesh(
+        new THREE.PlaneGeometry(widthX, corridorWidth),
+        material
+      );
+      corridor.rotation.x = -Math.PI / 2;
+      corridor.position.set((roomA.x + roomB.x) / 2, 0.05, roomA.z);
+      scene.add(corridor);
+
+      corridorData.corridor = {
+        mesh: corridor,
+        dimensions: { width: widthX, depth: corridorWidth },
+        position: { x: (roomA.x + roomB.x) / 2, z: roomA.z },
+        orientation: 'horizontal'
+      };
+
+      // === Pared central del pasillo ===
+      const midX = (roomA.x + roomB.x) / 2;
+      const midZ = roomA.z;
+
+      const door = createDoor(
+        midX,           // posición x en el centro
+        midZ,           // posición z en el centro
+        WALL_THICKNESS, // grosor
+        corridorWidth,  // ancho del pasillo
+        doorMaterial,
+        roomA,
+        roomB
+      );
+      // Ajustar la altura visual del muro
+      door.mesh.position.y = WALL_HEIGHT / 2;
+      doors.push(door)
+
+      // === Paredes laterales ===
+      const wallOffset = corridorWidth / 2 + WALL_THICKNESS / 2;
+
+      // Superior (+Z)
+      corridorData.walls.push(createWall(midX, midZ + wallOffset, widthX - WALL_THICKNESS, WALL_THICKNESS, wallMaterial));
+
+      // Inferior (-Z)
+      corridorData.walls.push(createWall(midX, midZ - wallOffset, widthX - WALL_THICKNESS, WALL_THICKNESS, wallMaterial));
+
+      // Paredes del lado de la habitación A
+      let posx = roomA.x + roomA.width / 2;
+      let posz = roomA.z + roomA.depth / 2 - (roomA.depth / 2 - corridorWidth / 2) / 2;
+      corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomA.depth / 2 - corridorWidth / 2, wallMaterial));
+
+      posz = roomA.z - roomA.depth / 2 + (roomA.depth / 2 - corridorWidth / 2) / 2;
+      corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomA.depth / 2 - corridorWidth / 2, wallMaterial));
+
+      // Paredes del lado de la habitación B
+      posx = roomB.x - roomB.width / 2;
+      posz = roomB.z + roomB.depth / 2 - (roomB.depth / 2 - corridorWidth / 2) / 2;
+      corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomB.depth / 2 - corridorWidth / 2, wallMaterial));
+
+      posz = roomB.z - roomB.depth / 2 + (roomB.depth / 2 - corridorWidth / 2) / 2;
+      corridorData.walls.push(createWall(posx, posz, WALL_THICKNESS, roomB.depth / 2 - corridorWidth / 2, wallMaterial));
     }
-    // === VERTICAL ===
-    else {
-      const widthZ = Math.abs(dz) - roomA.depth;
-      if (widthZ > 0) {
-        // Suelo del pasillo
-        const corridor = new THREE.Mesh(
-          new THREE.PlaneGeometry(corridorWidth, widthZ),
-          material
-        );
-        corridor.rotation.x = -Math.PI / 2;
-        corridor.position.set(roomA.x, 0.05, (roomA.z + roomB.z) / 2);
-        scene.add(corridor);
-        
-        corridorData.corridor = {
-          mesh: corridor,
-          dimensions: { width: corridorWidth, depth: widthZ },
-          position: { x: roomA.x, z: (roomA.z + roomB.z) / 2 },
-          orientation: 'vertical'
-        };
-  
-        // Paredes laterales
-        const wallOffset = corridorWidth / 2 + WALL_THICKNESS / 2;
-        const midZ = (roomA.z + roomB.z) / 2;
-        const midX = roomA.x;
-  
-        // Izquierda (-X)
-        corridorData.walls.push(createWall(midX - wallOffset, midZ, WALL_THICKNESS, widthZ  - WALL_THICKNESS, wallMaterial));
-  
-        // Derecha (+X)
-        corridorData.walls.push(createWall(midX + wallOffset, midZ, WALL_THICKNESS, widthZ  - WALL_THICKNESS, wallMaterial));
-  
-        // Paredes del lado de la habitación A
-        let posx = roomA.x + roomA.width / 2 - (roomA.width / 2 - corridorWidth / 2) / 2;
-        let posz = roomA.z + roomA.depth / 2;
-        corridorData.walls.push(createWall(posx, posz, roomA.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
-        
-        posx = roomA.x - roomA.width / 2 + (roomA.width / 2 - corridorWidth / 2) / 2;
-        corridorData.walls.push(createWall(posx, posz, roomA.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
-  
-        // Paredes del lado de la habitación B
-        posx = roomB.x + roomB.width / 2 - (roomB.width / 2 - corridorWidth / 2) / 2;
-        posz = roomB.z - roomB.depth / 2;
-        corridorData.walls.push(createWall(posx, posz, roomB.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
-        
-        posx = roomB.x - roomB.width / 2 + (roomB.width / 2 - corridorWidth / 2) / 2;
-        corridorData.walls.push(createWall(posx, posz, roomB.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
-      }
+  }
+
+  // === VERTICAL ===
+  else {
+    const widthZ = Math.abs(dz) - roomA.depth;
+
+    if (widthZ > 0) {
+      // Suelo del pasillo
+      const corridor = new THREE.Mesh(
+        new THREE.PlaneGeometry(corridorWidth, widthZ),
+        material
+      );
+      corridor.rotation.x = -Math.PI / 2;
+      corridor.position.set(roomA.x, 0.05, (roomA.z + roomB.z) / 2);
+      scene.add(corridor);
+
+      corridorData.corridor = {
+        mesh: corridor,
+        dimensions: { width: corridorWidth, depth: widthZ },
+        position: { x: roomA.x, z: (roomA.z + roomB.z) / 2 },
+        orientation: 'vertical'
+      };
+
+      // === Pared central del pasillo ===
+      const midX = roomA.x;
+      const midZ = (roomA.z + roomB.z) / 2;
+
+      const door = createDoor(
+        midX,           // posición X centro
+        midZ,           // posición Z centro
+        corridorWidth,  // ancho del pasillo
+        WALL_THICKNESS, // grosor
+        doorMaterial,
+        roomA,
+        roomB
+      );
+      door.mesh.position.y = WALL_HEIGHT / 2;
+      doors.push(door)
+
+      // === Paredes laterales ===
+      const wallOffset = corridorWidth / 2 + WALL_THICKNESS / 2;
+
+      // Izquierda (-X)
+      corridorData.walls.push(createWall(midX - wallOffset, midZ, WALL_THICKNESS, widthZ - WALL_THICKNESS, wallMaterial));
+
+      // Derecha (+X)
+      corridorData.walls.push(createWall(midX + wallOffset, midZ, WALL_THICKNESS, widthZ - WALL_THICKNESS, wallMaterial));
+
+      // Paredes del lado de la habitación A
+      let posx = roomA.x + roomA.width / 2 - (roomA.width / 2 - corridorWidth / 2) / 2;
+      let posz = roomA.z + roomA.depth / 2;
+      corridorData.walls.push(createWall(posx, posz, roomA.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
+
+      posx = roomA.x - roomA.width / 2 + (roomA.width / 2 - corridorWidth / 2) / 2;
+      corridorData.walls.push(createWall(posx, posz, roomA.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
+
+      // Paredes del lado de la habitación B
+      posx = roomB.x + roomB.width / 2 - (roomB.width / 2 - corridorWidth / 2) / 2;
+      posz = roomB.z - roomB.depth / 2;
+      corridorData.walls.push(createWall(posx, posz, roomB.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
+
+      posx = roomB.x - roomB.width / 2 + (roomB.width / 2 - corridorWidth / 2) / 2;
+      corridorData.walls.push(createWall(posx, posz, roomB.width / 2 - corridorWidth / 2, WALL_THICKNESS, wallMaterial));
     }
-  
-    return corridorData;
+  }
+
+  return corridorData;
 }
   
   //  CONEXIONES ALEATORIAS PERO CONEXAS (MST tipo Kruskal) 
@@ -307,11 +382,14 @@ function createCorridor(roomA, roomB, material) {
     rooms.forEach(room => {
       const ceilingGeometry = room.mesh.geometry.clone();
       const ceilingMaterial = room.mesh.material.clone();
-      ceilingMaterial.color.setHex(0xCCCCCC); // Color diferente para techo
-      
+      ceilingMaterial.color.setHex(0x88888888); // Color diferente para techo
+
+      // Invertir las normales para que apunten hacia abajo
+      ceilingGeometry.rotateX(Math.PI);
+
       const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
       ceiling.rotation.x = -Math.PI / 2;
-      ceiling.position.set(room.x, WALL_HEIGHT + 0.1, room.z); // Mover a altura de paredes
+      ceiling.position.set(room.x, WALL_HEIGHT + 0.1, room.z);
       scene.add(ceiling);
       
       ceilingData.roomCeilings.push({
@@ -319,19 +397,32 @@ function createCorridor(roomA, roomB, material) {
         originalRoom: room,
         type: 'room_ceiling'
       });
+
+      // Techo para el minimapa
+      const ceilingMapGeometry = room.mesh.geometry.clone();
+      const ceilingMapMaterial = new THREE.MeshBasicMaterial({
+        color: "#8ff",
+        transparent: true,
+        opacity: 1,
+      });
+      const ceilingMap = new THREE.Mesh(ceilingMapGeometry, ceilingMapMaterial);
+      ceilingMap.rotation.x = -Math.PI / 2;
+      ceilingMap.position.set(room.x, WALL_HEIGHT + 0.5, room.z);
+      scene.add(ceilingMap);
+
     });
   
     // 2. Copiar pasillos (techos)
     corridors.forEach(corridor => {
       if (corridor.corridor && corridor.corridor.mesh) {
         const corridorCeilingGeometry = corridor.corridor.mesh.geometry.clone();
-        const corridorCeilingMaterial = corridor.corridor.mesh.material.clone();
-        corridorCeilingMaterial.color.setHex(0xAAAAAA);
+        //const corridorCeilingMaterial = corridor.corridor.mesh.material.clone();
+        //corridorCeilingMaterial.color.setHex(0xAAAAAA);
         
-        const corridorCeiling = new THREE.Mesh(corridorCeilingGeometry, corridorCeilingMaterial);
+        const corridorCeiling = new THREE.Mesh(corridorCeilingGeometry, corridorMaterial);
         corridorCeiling.rotation.x = -Math.PI / 2;
         corridorCeiling.position.copy(corridor.corridor.mesh.position);
-        corridorCeiling.position.y = WALL_HEIGHT + 0.1; // Mover a altura de paredes
+        corridorCeiling.position.y = WALL_HEIGHT  * 2; // Mover a altura de paredes
         scene.add(corridorCeiling);
         
         ceilingData.corridorCeilings.push({
@@ -339,6 +430,20 @@ function createCorridor(roomA, roomB, material) {
           originalCorridor: corridor,
           type: 'corridor_ceiling'
         });
+
+        // Techo para el minimapa
+        const ceilingMapGeometry = corridor.corridor.mesh.geometry.clone();
+        const ceilingMapMaterial = new THREE.MeshBasicMaterial({
+          color: "#8ff",
+          transparent: true,
+          opacity: 1,
+        });
+        const ceilingMap = new THREE.Mesh(ceilingMapGeometry, ceilingMapMaterial);
+        ceilingMap.rotation.x = -Math.PI / 2;
+        ceilingMap.position.copy(corridor.corridor.mesh.position);
+        ceilingMap.position.y = WALL_HEIGHT * 2; // Mover a altura de paredes
+        scene.add(ceilingMap);
+
       }
     });
   
@@ -369,3 +474,25 @@ function selectFarRooms(rooms){
     return [roomA, roomB]
   }
   
+
+function createDoorWithProperUVs(widthX, height, widthZ) {
+    const geometry = new THREE.BoxGeometry(widthX, height, widthZ);
+    
+    // Obtener atributos UV
+    const uvs = geometry.attributes.uv;
+    
+    // Ajustar UVs para que la textura se muestre correctamente en cada cara
+    for (let i = 0; i < uvs.count; i++) {
+        const u = uvs.getX(i);
+        const v = uvs.getY(i);
+        
+        // Escalar UVs para que la textura ocupe toda la cara
+        uvs.setX(i, u);
+        uvs.setY(i, v);
+    }
+    
+    // Forzar actualización
+    uvs.needsUpdate = true;
+    
+    return [new THREE.Mesh(geometry, doorMaterial), geometry];
+}

@@ -115,7 +115,7 @@ function animateRobot(delta){
   }
 
   if (GIRO_BRAZO_POSI){
-    brazo.rotation.z += velAnimacion * delta * 0.75
+    brazo.rotation.z += velAnimacion * delta * 0.5
     if (brazo.rotation.z >= 45 / 180 * Math.PI){
       GIRO_BRAZO_POSI = false; GIRO_BRAZO_NEGA = true;
     }

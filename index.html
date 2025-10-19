@@ -5,45 +5,90 @@
 		<title>Threejs App</title>
 		<style>
 			body {
-				background-color: #000;
-				margin: 0px;
-				overflow: hidden;
+			background-color: #000;
+			margin: 0;
+			overflow: hidden;
+			font-family: 'Orbitron', 'Segoe UI', sans-serif;
+			color: #aaf;
 			}
 
 			#hud {
-				position: absolute;
-				bottom: 10px;
-				left: 10px;
-				width: 250px;
-				color: #fff;
-				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-				pointer-events: none;
-				user-select: none;
+			position: absolute;
+			bottom: 10px;
+			left: 10px;
+			width: 200px;
+			background: rgba(10, 15, 25, 0.35);
+			border: 1px solid rgba(0, 255, 255, 0.1);
+			box-shadow:
+				0 0 10px rgba(0, 255, 255, 0.1),
+				inset 0 0 15px rgba(0, 255, 255, 0.05);
+			border-radius: 10px;
+			backdrop-filter: blur(5px);
+			padding: 15px 20px;
+			pointer-events: none;
+			user-select: none;
 			}
 
-			#hud-bg {
-				position: absolute;
-				bottom: 0;
-				left: 0;
-				width: 250px;
-				opacity: 0.5;
-				z-index: 0;
+			#hud::before {
+			content: "";
+			position: absolute;
+			top: -2px;
+			left: -2px;
+			right: -2px;
+			bottom: -2px;
+			border-radius: 12px;
+			border: 1px solid rgba(0, 255, 255, 0.05);
+			filter: blur(2px);
+			z-index: 0;
 			}
 
 			#stats {
-				position: relative;
-				z-index: 1;
-				padding: 15px;
+			position: relative;
+			z-index: 1;
 			}
 
 			#stats p {
-				margin: 5px 0;
-				font-size: 16px;
+			margin: 8px 0;
+			font-size: 15px;
+			letter-spacing: 1px;
+			text-shadow: 0 0 3px rgba(0, 255, 255, 0.25);
+			color: #8ff;
 			}
 
 			#stats span {
-				font-weight: bold;
-				color: #0f0;
+			font-weight: bold;
+			color: #0ff;
+			text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+			}
+
+			#game-over {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			font-family: 'Orbitron', sans-serif;
+			font-size: 80px;
+			color: rgba(0, 255, 255, 0.8);
+			text-shadow:
+				0 0 10px rgba(0, 255, 255, 0.5),
+				0 0 30px rgba(0, 255, 255, 0.2),
+				0 0 60px rgba(0, 255, 255, 0.1);
+			letter-spacing: 8px;
+			opacity: 0;
+			pointer-events: none;
+			/*transition: opacity 1s ease;
+			animation: flicker 3s infinite;
+			z-index: 9999;*/
+			}
+
+			/* Parpadeo tenue y futurista */
+			@keyframes flicker {
+			0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+				opacity: 0.85;
+			}
+			20%, 24%, 55% {
+				opacity: 0.3;
+			}
 			}
 		</style>
 	</head>
@@ -59,7 +104,7 @@
 		</div>
 		<!-- Contenedor del app -->
 		<div id="container"></div>
-
+		<div id="game-over">GAME OVER</div>
 		<!-- Scripts de biblioteca -->
 		<script src="lib/three.min_r140.js"></script>
 		<script src="lib/OrbitControls.js"></script>

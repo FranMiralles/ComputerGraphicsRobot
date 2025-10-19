@@ -26,18 +26,18 @@ var battery = 0;
 let isBatThrusting = false;
 let batThrustProgress = 0;
 const batThrustDuration = 0.25; // segundos para ida y vuelta (~250 ms)
-const batStartPos = new THREE.Vector3(-10, 12, 10);
-const batEndPos = new THREE.Vector3(-4, 10, 16); // avanza +4 en Z
+const batStartPos = new THREE.Vector3(-10, 13, 15);
+const batEndPos = new THREE.Vector3(-2, 8, 20); // avanza +4 en Z
 const batStartRotX = 0.1;
 const batEndRotX = 1.5;
 
 
 function createPlayer(x, z){
-    player = new THREE.Mesh(new THREE.BoxGeometry(WALL_HEIGHT / 7, WALL_HEIGHT / 2.5, WALL_HEIGHT / 7), playerMaterial);
+    player = new THREE.Mesh(new THREE.BoxGeometry(60 / 7, 60 / 2.5, 60 / 7), playerMaterial);
     player.position.x = x;
     player.position.y = 100;
     player.position.z = z;
-    playerPositionHead = 2 + WALL_HEIGHT / 4;
+    playerPositionHead = 2 + 60 / 4;
     scene.add(player);
 
     const batGeometry = new THREE.CylinderGeometry(1.2, 0.6, 18, 16);
@@ -46,7 +46,7 @@ function createPlayer(x, z){
     baseballBat.castShadow = true;
 
     // Posición relativa a la cámara
-    baseballBat.position.set(-10, 12, 10);
+    baseballBat.position.set(-10, 13, 15);
     
     // Inclinación inicial
     baseballBat.rotation.x = batStartRotX; // apuntando un poco hacia arriba
@@ -59,7 +59,7 @@ function createPlayer(x, z){
   
     // Rigid body del player
     const boxShape = new CANNON.Box( new
-      CANNON.Vec3(WALL_HEIGHT / 7 / 2, WALL_HEIGHT / 2.5 / 2, WALL_HEIGHT / 7 / 2));
+      CANNON.Vec3(60 / 7 / 2, 60 / 2.5 / 2, 60 / 7 / 2));
     const boxBody = new CANNON.Body({
       mass: 1,
       material: playerMaterialCANNON
@@ -88,11 +88,11 @@ function createPlayer(x, z){
   
     const extrudeSettings = { depth: WALL_HEIGHT / 40, bevelEnabled: false };
     const arrowGeometry = new THREE.ExtrudeGeometry(arrowShape, extrudeSettings);
-    const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const arrowMaterial = new THREE.MeshBasicMaterial({ color: "#8b0000" });
     const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
   
     // Colocar el triángulo arriba del jugador
-    arrowMesh.position.y = WALL_HEIGHT + (WALL_HEIGHT / 10);
+    arrowMesh.position.y = WALL_HEIGHT * 2 + (WALL_HEIGHT / 10);
     arrowMesh.rotation.x = Math.PI / 2; // rotar para que mire hacia arriba en el eje Y
   
     // Agregar la flecha como hijo del jugador (seguirá su posición y rotación)
@@ -131,14 +131,28 @@ function createPlayer(x, z){
     
     
     const triggerGeometry = new THREE.SphereGeometry(triggerRadius, 16, 16);
-const triggerMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xff0000, 
-    transparent: true, 
-    opacity: 0.3,
-    wireframe: true 
-});
-triggerMesh = new THREE.Mesh(triggerGeometry, triggerMaterial);
-scene.add(triggerMesh);
+    const triggerMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xff0000, 
+        transparent: true, 
+        opacity: 0.3,
+        wireframe: true 
+    });
+    triggerMesh = new THREE.Mesh(triggerGeometry, triggerMaterial);
+    scene.add(triggerMesh);
 
   
+}
+
+function playerReduceHP(bodyID){
+  playerHP = playerHP - 20
+
+  if (playerHP <= 0){
+    // Player deads, ortographic camera
+    CAMARA_CENITAL = true
+    scene.fog = null;
+    camera.position.set( -405, 60, -565 );
+    cameraControls = new THREE.OrbitControls( camera, renderer.domElement );
+    cameraControls.target.set( 0, 5, 0 );
+    isPlayerDead = true
   }
+}
