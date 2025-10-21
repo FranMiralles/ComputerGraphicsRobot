@@ -143,3 +143,27 @@ function playerReduceHP(bodyID){
     isPlayerDead = true
   }
 }
+
+
+function createFluorescentLight(x, z, intensity, color){
+  const geometry = new THREE.CylinderGeometry(1, 1, 10, 16);
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    emissive: 0x88ccff,
+    emissiveIntensity: 2.5,
+    shininess: 100,
+  });
+
+  const tube = new THREE.Mesh(geometry, material);
+  tube.rotation.z = Math.PI / 2; // horizontal
+  tube.position.set(x, WALL_HEIGHT, z);
+
+  // Luz central (fluorescente)
+  const light = new THREE.PointLight(color, intensity, 200);
+  light.castShadow = true;
+  light.shadow.mapSize.width = 1024;
+  light.shadow.mapSize.height = 1024;
+  light.position.set(x, WALL_HEIGHT-5, z);
+  scene.add(tube)
+  scene.add(light)
+}

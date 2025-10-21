@@ -22,7 +22,7 @@ powerUps = []
 
 var flashlight;
 let flashlightTime = 0;
-let flashlightBaseIntensity = 2.5;
+let flashlightBaseIntensity = 2.8;
 let flashlightOffTimer = 0;
 
 
@@ -87,7 +87,7 @@ var farRooms;
 //  ESCENA PRINCIPAL 
 function loadScene() {
 
-  const ambient = new THREE.AmbientLight(0x333333, 0.1);
+  const ambient = new THREE.AmbientLight(0x333333, 0.15);
   scene.add(ambient);
 
   // --- LUZ DIRECCIONAL (luna o luz distante) ---
@@ -107,7 +107,7 @@ function loadScene() {
   redLight.shadow.mapSize.height = 1024;
   scene.add(redLight);
   */
-  flashlight = new THREE.SpotLight(0xffffff, flashlightBaseIntensity, 220, Math.PI / 5, 0.8, 2);
+  flashlight = new THREE.SpotLight(0xffffff, flashlightBaseIntensity, 220, Math.PI / 4.5, 0.8, 2);
   // color, intensidad, distancia, ángulo, penumbra, decaimiento
   flashlight.position.set(-450, 10, -470);
   flashlight.castShadow = true;
@@ -200,6 +200,11 @@ function loadScene() {
     position: { x: farRooms[0].x - 15, y: 0, z: farRooms[0].z - 110 },
     scale: 20.0
   });
+
+
+  createFluorescentLight(farRooms[0].x, farRooms[0].z, 0.5, 0x99ddff)
+
+
 }
 
 function getDirectionAndPosition(positionA, positionB, distance = 250) {

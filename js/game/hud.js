@@ -11,7 +11,7 @@ function updateHUD() {
         gameOverText.style.transition= "opacity 1s ease";
 		gameOverText.style.animation= "flicker 3s infinite";
         if (finishGame) {
-            gameOverText.textContent = "GANASTE"
+            gameOverText.textContent = "SIGNAL SENT MISSION SUCCESS"
         }
     } else {
         gameOverText.style.opacity = "0";
