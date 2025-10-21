@@ -15,8 +15,8 @@ let isBatSwinging = false;
 var playerHP = 100;
 var playerVelocity = 50;
 var playerVelocityIncrement = 20;
-var pushForce = 1000;
-var pushForceIncrement = 500;
+var pushForce = 600;
+var pushForceIncrement = 400;
 var damage = 20;
 var damageIncrement = 20;
 var battery = 0;
@@ -122,7 +122,6 @@ function createPlayer(x, z){
             zombieObj.zombie.body.applyForce(forceVector, zombieObj.zombie.body.position);
             // Reduce zombie hp
             zombieObj.reduceHP(damage);
-            console.log(`EMPUJADO ZOMBI ${zombieObj.zombie.body.id}`);
         }
     });
     });

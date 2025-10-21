@@ -3,19 +3,19 @@ function createPowerUp(x, z, type) {
   const textureLoader = new THREE.TextureLoader();
   var texture;
   if (type == "heal"){
-        texture = textureLoader.load('/images/Heal.png');
+        texture = textureLoader.load('images/Heal.png');
     }
     if (type == "speed"){
-        texture = textureLoader.load('/images/Speed.png');
+        texture = textureLoader.load('images/Speed.png');
     }
     if (type == "push"){
-        texture = textureLoader.load('/images/Push.png');
+        texture = textureLoader.load('images/Push.png');
     }
     if (type == "damage"){
-        texture = textureLoader.load('/images/Punch.png');
+        texture = textureLoader.load('images/Punch.png');
     }
     if (type == "battery"){
-        texture = textureLoader.load('/images/Battery.png');
+        texture = textureLoader.load('images/Battery.png');
     }
   
 
