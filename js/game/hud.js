@@ -6,10 +6,13 @@ function updateHUD() {
     document.getElementById('battery-value').textContent = battery;
 
     const gameOverText = document.getElementById("game-over");
-    if (isPlayerDead) {
+    if (isPlayerDead || finishGame) {
         gameOverText.style.opacity = "1";
         gameOverText.style.transition= "opacity 1s ease";
 		gameOverText.style.animation= "flicker 3s infinite";
+        if (finishGame) {
+            gameOverText.textContent = "GANASTE"
+        }
     } else {
         gameOverText.style.opacity = "0";
     }

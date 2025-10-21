@@ -82,6 +82,8 @@ function init()
 
 }
 
+var farRooms;
+
 //  ESCENA PRINCIPAL 
 function loadScene() {
 
@@ -134,7 +136,7 @@ function loadScene() {
   const rows = 4;
   const cols = 3;
   const rooms = createGridRooms(rows, cols, 250, 20);
-  const farRooms = selectFarRooms(rooms)
+  farRooms = selectFarRooms(rooms)
   const sceneData = createConnectingCorridors(rooms, rows, cols); // sceneData.corridors, sceneData.walls, sceneData.connections
 
   const ceilingData = createCeiling(rooms, sceneData.corridors)
@@ -166,7 +168,7 @@ function loadScene() {
   createPlayer(farRooms[0].x, farRooms[0].z - 80)
 
 
-  var spawnPosition = getDirectionAndPosition( new THREE.Vector3(farRooms[0].x, 0, farRooms[0].z), new THREE.Vector3(farRooms[1].x, 0, farRooms[1].z))
+  var spawnPosition = getDirectionAndPosition( new THREE.Vector3(farRooms[1].x, 0, farRooms[1].z), new THREE.Vector3(farRooms[0].x, 0, farRooms[0].z))
 
   
   zombieManager = new ZombieManager(zombies, [
@@ -180,10 +182,27 @@ function loadScene() {
     [spawnPosition.x- 5, spawnPosition.z + 5],
   ], scene, world, player)
 
-
+  createServer({
+    scene: scene,
+    world: world,
+    position: { x: farRooms[0].x, y: 0, z: farRooms[0].z - 110 },
+    scale: 20.0
+  });
+  createServer({
+    scene: scene,
+    world: world,
+    position: { x: farRooms[0].x + 15, y: 0, z: farRooms[0].z - 110 },
+    scale: 20.0
+  });
+  createServer({
+    scene: scene,
+    world: world,
+    position: { x: farRooms[0].x - 15, y: 0, z: farRooms[0].z - 110 },
+    scale: 20.0
+  });
 }
 
-function getDirectionAndPosition(positionA, positionB, distance = 220) {
+function getDirectionAndPosition(positionA, positionB, distance = 250) {
     // Calcular dirección desde B hacia A
     const direction = new THREE.Vector3();
     direction.subVectors(positionA, positionB).normalize();
@@ -253,7 +272,7 @@ function update()
   delta = clock.getDelta();
   world.step(1 / 60); // avanza la simulación física
 
-  if (!isPlayerDead){
+  if (!isPlayerDead && !finishGame){
     updateDoors(delta);
     // Rotar powerups
     for (let i = powerUps.length - 1; i >= 0; i--) {
@@ -291,7 +310,7 @@ function update()
             damage = damage + damageIncrement
           }
           if (powerUp.type == "battery"){
-            console.log("COGIENDO BATERÍA")
+            closeAllDoors();
             battery = battery + 1
           }
       }

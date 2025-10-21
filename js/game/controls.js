@@ -17,6 +17,9 @@ var nearestDoor = null;
 var isOpeningDoor = false;
 var doorOpeningSpeed = 15; // Velocidad de apertura
 var numOpenedDoors = 0
+var doorClosingSpeed = 30;
+
+var roomsGenerated = []
   
 // Event listeners para controles
 document.addEventListener('keydown', (event) => {
@@ -60,6 +63,10 @@ document.addEventListener('keydown', (event) => {
         damageIncrement = 0;
         battery = 1;
         break;
+      case 'KeyC':
+        const panel = document.getElementById('controls-panel');
+        panel.classList.toggle('visible');
+        break
     }
 });
   
@@ -87,7 +94,6 @@ document.addEventListener('keyup', (event) => {
 });
 
 function startAttack() {
-  console.log("Q - Iniciando ataque");
   isAttackInProgress = true;
   attackCooldown = 1.0;
   attackingPush = true;
@@ -156,14 +162,36 @@ function openDoor(door) {
     );
     
     // Devolver la room más lejana
+    
     if (distToRoomA > distToRoomB) {
-      reiniciarZombis(door.roomA)
+      if (roomsGenerated.includes(door.roomA)){
+        reiniciarZombis(door.roomB)
+      }else{
+        reiniciarZombis(door.roomA)
+        roomsGenerated.push(door.roomA)
+      }
     }else{
-      reiniciarZombis(door.roomB)
+      if (roomsGenerated.includes(door.roomB)){
+        reiniciarZombis(door.roomA)
+      }else{
+        reiniciarZombis(door.roomB)
+        roomsGenerated.push(door.roomB)
+      }
     }
     numOpenedDoors = numOpenedDoors + 1
 }
 
+function closeAllDoors() {
+    doors.forEach(door => {
+        if (door.isOpen || door.isOpening) {
+            // Marcar para cerrar
+            door.isClosing = true;
+            door.isOpening = false;
+        }
+    });
+    isOpeningDoor = false;
+    numOpenedDoors = 0;
+}
 
 function updateDoors(delta) {
     // Buscar puerta más cercana cada frame
@@ -171,24 +199,35 @@ function updateDoors(delta) {
     
     // Actualizar puertas que se están abriendo
     doors.forEach(door => {
-        if (door.isOpening) {
-            // Mover la puerta hacia arriba
-            const targetY = door.mesh.position.y + doorOpeningSpeed * delta;
-            door.mesh.position.y = targetY;
-            
-            // Mover también el cuerpo físico
-            if (door.body) {
-              console.log("MOVIENDO CUERPO")
-                door.body.position.y = targetY;
-            }
-            
-            // Si la puerta ha subido lo suficiente, marcarla como abierta
-            if (targetY >= WALL_HEIGHT * 1.2) {
-                door.isOpen = true;
-                door.isOpening = false;
-                isOpeningDoor = false;
-                console.log("Puerta abierta completamente");
-            }
-        }
+      if (door.isOpening) {
+          // Mover la puerta hacia arriba
+          const targetY = door.mesh.position.y + doorOpeningSpeed * delta;
+          door.mesh.position.y = targetY;
+          
+          // Mover también el cuerpo físico
+          if (door.body) {
+              door.body.position.y = targetY;
+          }
+          
+          // Si la puerta ha subido lo suficiente, marcarla como abierta
+          if (targetY >= WALL_HEIGHT * 1.2) {
+              door.isOpen = true;
+              door.isOpening = false;
+              isOpeningDoor = false;
+          }
+      }
+      if (door.isClosing) {
+          const targetY = door.mesh.position.y - doorClosingSpeed * delta;
+          door.mesh.position.y = targetY;
+          if (door.body) door.body.position.y = targetY;
+
+          if (targetY <= 35) {
+              // Reset a posición base
+              door.mesh.position.y = 35;
+              if (door.body) door.body.position.y = 35;
+              door.isOpen = false;
+              door.isClosing = false;
+          }
+      }
     });
 }

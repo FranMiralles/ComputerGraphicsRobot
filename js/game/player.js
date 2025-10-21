@@ -16,10 +16,12 @@ var playerHP = 100;
 var playerVelocity = 50;
 var playerVelocityIncrement = 20;
 var pushForce = 600;
-var pushForceIncrement = 400;
-var damage = 20;
-var damageIncrement = 20;
+var pushForceIncrement = 100;
+var damage = 25;
+var damageIncrement = 25;
 var battery = 0;
+
+var finishGame;
 
 let isBatThrusting = false;
 let batThrustProgress = 0;

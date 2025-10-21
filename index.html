@@ -90,17 +90,86 @@
 				opacity: 0.3;
 			}
 			}
+
+			#controls-panel {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 340px;
+			background: rgba(10, 15, 25, 0.45);
+			border: 1px solid rgba(0, 255, 255, 0.15);
+			box-shadow:
+				0 0 25px rgba(0, 255, 255, 0.15),
+				inset 0 0 25px rgba(0, 255, 255, 0.05);
+			border-radius: 12px;
+			backdrop-filter: blur(8px);
+			padding: 30px 35px;
+			text-align: left;
+			z-index: 2000;
+			color: #8ff;
+			text-shadow: 0 0 5px rgba(0, 255, 255, 0.25);
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity 0.4s ease;
+			}
+
+			#controls-panel.visible {
+			opacity: 1;
+			pointer-events: auto;
+			}
+
+			#controls-panel h2 {
+			font-family: 'Orbitron', sans-serif;
+			font-size: 26px;
+			text-align: center;
+			margin-bottom: 15px;
+			color: #0ff;
+			text-shadow:
+				0 0 10px rgba(0, 255, 255, 0.4),
+				0 0 20px rgba(0, 255, 255, 0.2);
+			letter-spacing: 2px;
+			}
+
+			#controls-panel ul {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+			}
+
+			#controls-panel li {
+			margin: 12px 0;
+			font-size: 17px;
+			letter-spacing: 1px;
+			}
+
+			#controls-panel li span {
+			color: #0ff;
+			font-weight: bold;
+			text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
+			}
 		</style>
 	</head>
 	<body>
 		<div id="hud">
-		<div id="stats">
-			<p>HP: <span id="hp-value">100</span></p>
-			<p>Velocidad: <span id="velocity-value">50</span></p>
-			<p>Daño: <span id="damage-value">20</span></p>
-			<p>Empuje: <span id="push-value">20</span></p>
-			<p>Baterías: <span id="battery-value">0</span></p>
+			<div id="stats">
+				<p>HP: <span id="hp-value">100</span></p>
+				<p>Velocidad: <span id="velocity-value">50</span></p>
+				<p>Daño: <span id="damage-value">20</span></p>
+				<p>Empuje: <span id="push-value">20</span></p>
+				<p>Baterías: <span id="battery-value">0</span></p>
+			</div>
+		
 		</div>
+		<div id="controls-panel" class="visible">
+			<h2>Controles</h2>
+			<ul>
+				<li><span>WASD</span> — Movimiento</li>
+				<li><span>Flechas</span> — Vista de la cámara</li>
+				<li><span>Q</span> — Ataque</li>
+				<li><span>E</span> — Abrir puerta</li>
+				<li><span>C</span> — Mostrar / Ocultar controles</li>
+			</ul>
 		</div>
 		<!-- Contenedor del app -->
 		<div id="container"></div>
@@ -114,6 +183,7 @@
 		<script src="lib/index.min.js"></script>
 		<script src="lib/FBXLoader.js"></script>
 
+		<script src="js/game/computer.js"></script>
 		<script src="js/game/hud.js"></script>
 		<script src="js/game/powerUps.js"></script>
 		<script src="js/game/zombie.js"></script>
